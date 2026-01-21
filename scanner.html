@@ -601,7 +601,7 @@
 
         async function sendToSheets() {
             // URL del Apps Script integrada
-            const webhookUrl = 'https://script.google.com/macros/s/AKfycbzQyZ_I3m2UDmCnNV7Q-_Z0BSk3Xy07kfCp6mq80wjGwRROHbfaq5XzpiQiJ_AEJN6XVg/exec';
+            const webhookUrl = https://script.google.com/macros/s/AKfycbzex1G8-UHFAwzZ-Bt_OHuAKVq2_BUCj7NV4iGXbpm6YqEdoXL0HGeP_MbNWkKhiwfqBg/exec';
             
             if (reports.length === 0) {
                 showToast('⚠️ No hay reportes para enviar');
@@ -615,6 +615,7 @@
             
             sendBtn.disabled = true;
             progressDiv.style.display = 'block';
+            progressDiv.classList.remove('success', 'error');
             progressBar.style.width = '10%';
             progressText.textContent = 'Preparando datos...';
 
@@ -647,14 +648,59 @@
                 progressBar.style.width = '50%';
                 progressText.textContent = 'Conectando con Google Sheets...';
 
-                // Enviar usando fetch con modo no-cors (Google Apps Script requiere esto desde dominios externos)
-                const response = await fetch(webhookUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(dataToSend)
+                // Usar el método de Google Apps Script con callback (JSONP-like)
+                const result = await new Promise((resolve, reject) => {
+                    // Crear iframe oculto para el envío
+                    const iframe = document.createElement('iframe');
+                    iframe.name = 'hidden_iframe_' + Date.now();
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                    
+                    // Crear formulario
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = webhookUrl;
+                    form.target = iframe.name;
+                    
+                    // Agregar datos como campo oculto
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'payload';
+                    input.value = JSON.stringify(dataToSend);
+                    form.appendChild(input);
+                    
+                    document.body.appendChild(form);
+                    
+                    // Timeout de seguridad
+                    const timeout = setTimeout(() => {
+                        cleanup();
+                        // Asumimos éxito después de 3 segundos sin error
+                        resolve({ success: true, assumed: true });
+                    }, 3000);
+                    
+                    // Limpiar elementos
+                    function cleanup() {
+                        clearTimeout(timeout);
+                        try {
+                            document.body.removeChild(form);
+                            document.body.removeChild(iframe);
+                        } catch(e) {}
+                    }
+                    
+                    // Detectar cuando el iframe carga (éxito)
+                    iframe.onload = () => {
+                        cleanup();
+                        resolve({ success: true });
+                    };
+                    
+                    // Detectar error
+                    iframe.onerror = () => {
+                        cleanup();
+                        reject(new Error('Error de conexión'));
+                    };
+                    
+                    // Enviar formulario
+                    form.submit();
                 });
 
                 progressBar.style.width = '100%';
@@ -686,26 +732,8 @@
                 
                 progressBar.style.width = '100%';
                 progressDiv.classList.add('error');
-                
-                let errorMsg = 'Error desconocido';
-                
-                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                    errorMsg = 'No se pudo conectar. Verifica tu conexión a internet.';
-                } else if (error.name === 'NetworkError') {
-                    errorMsg = 'Error de red. Intenta de nuevo.';
-                } else {
-                    errorMsg = error.message || 'Error al enviar datos';
-                }
-                
-                progressText.textContent = '❌ ' + errorMsg;
-                showToast('❌ Error: ' + errorMsg);
-                
-                // Mostrar error detallado en consola
-                console.error('Detalles del error:', {
-                    name: error.name,
-                    message: error.message,
-                    stack: error.stack
-                });
+                progressText.textContent = '❌ Error: ' + (error.message || 'No se pudo enviar');
+                showToast('❌ Error al enviar');
                 
                 setTimeout(() => {
                     progressDiv.style.display = 'none';
