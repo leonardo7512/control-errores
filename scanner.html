@@ -239,6 +239,66 @@
 
         .toast.show { transform: translateY(0); opacity: 1; }
 
+        /* Barra de progreso */
+        .progress-container {
+            display: none;
+            background: #f0f0f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .progress-container.success {
+            background: #d4edda;
+        }
+
+        .progress-container.error {
+            background: #f8d7da;
+        }
+
+        .progress-bar-wrapper {
+            background: #ddd;
+            border-radius: 4px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, var(--success), #2ecc71);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .progress-container.error .progress-bar {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+
+        .progress-text {
+            font-size: 0.85rem;
+            color: var(--text);
+            text-align: center;
+        }
+
+        .connected-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #d4edda;
+            color: #155724;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .connected-badge::before {
+            content: '●';
+            color: #27ae60;
+        }
+
         @media (max-width: 600px) {
             .actions { flex-direction: column; }
             .btn { width: 100%; justify-content: center; }
@@ -254,11 +314,9 @@
             <p>Escanea reportes y envía a Google Sheets</p>
         </header>
 
-        <!-- Configuración -->
-        <div class="config-section">
-            <h3>⚙️ Configuración Google Sheets</h3>
-            <input type="text" id="webhookUrl" placeholder="Pega aquí la URL de tu Web App (Apps Script)">
-            <small>Obtén la URL desplegando el Apps Script como Web App. La URL se guarda automáticamente.</small>
+        <!-- Estado de conexión -->
+        <div class="connected-badge">
+            Conectado a Google Sheets de AROMAKER
         </div>
 
         <!-- Escáner -->
@@ -324,6 +382,14 @@
                     🗑️ Limpiar Todo
                 </button>
             </div>
+            
+            <!-- Barra de progreso -->
+            <div class="progress-container" id="sendProgress">
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="progress-text" id="progressText">Preparando...</div>
+            </div>
         </div>
     </div>
 
@@ -334,18 +400,7 @@
         let reports = [];
         let scannedCodes = new Set();
 
-        // Cargar URL guardada
         document.addEventListener('DOMContentLoaded', () => {
-            const savedUrl = localStorage.getItem('sheetsWebhookUrl');
-            if (savedUrl) {
-                document.getElementById('webhookUrl').value = savedUrl;
-            }
-            
-            // Guardar URL cuando cambie
-            document.getElementById('webhookUrl').addEventListener('change', (e) => {
-                localStorage.setItem('sheetsWebhookUrl', e.target.value);
-            });
-
             updateStats();
             renderTable();
         });
@@ -545,43 +600,121 @@
         }
 
         async function sendToSheets() {
-            const webhookUrl = document.getElementById('webhookUrl').value.trim();
+            // URL del Apps Script integrada
+            const webhookUrl = 'https://script.google.com/macros/s/AKfycbzQyZ_I3m2UDmCnNV7Q-_Z0BSk3Xy07kfCp6mq80wjGwRROHbfaq5XzpiQiJ_AEJN6XVg/exec';
             
-            if (!webhookUrl) {
-                alert('Por favor ingresa la URL del Web App de Google Apps Script');
+            if (reports.length === 0) {
+                showToast('⚠️ No hay reportes para enviar');
                 return;
             }
 
             const sendBtn = document.getElementById('sendBtn');
+            const progressDiv = document.getElementById('sendProgress');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
             sendBtn.disabled = true;
-            sendBtn.textContent = '⏳ Enviando...';
+            progressDiv.style.display = 'block';
+            progressBar.style.width = '10%';
+            progressText.textContent = 'Preparando datos...';
 
             try {
+                progressBar.style.width = '30%';
+                progressText.textContent = `Enviando ${reports.length} reporte(s)...`;
+                
+                // Preparar datos
+                const dataToSend = {
+                    reportes: reports.map(r => ({
+                        numero: r.numero || '',
+                        fechaError: r.fechaError || '',
+                        fechaRegistro: r.fechaRegistro || '',
+                        departamento: r.departamento || '',
+                        registradoPor: r.registradoPor || '',
+                        ordenCompra: r.ordenCompra || '',
+                        cliente: r.cliente || '',
+                        productos: r.productos || '',
+                        tipoError: r.tipoError || '',
+                        descripcion: r.descripcion || '',
+                        responsables: r.responsables || '',
+                        observaciones: r.observaciones || '',
+                        monto: r.monto || 0,
+                        montoPorPersona: r.montoPorPersona || 0,
+                        resolucion: r.resolucion || '',
+                        cantidadFotos: r.cantidadFotos || 0
+                    }))
+                };
+
+                progressBar.style.width = '50%';
+                progressText.textContent = 'Conectando con Google Sheets...';
+
+                // Enviar usando fetch con modo no-cors (Google Apps Script requiere esto desde dominios externos)
                 const response = await fetch(webhookUrl, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ reportes: reports })
+                    body: JSON.stringify(dataToSend)
                 });
 
-                // Con no-cors no podemos leer la respuesta, asumimos éxito
-                showToast('✅ Enviado a Google Sheets');
+                progressBar.style.width = '100%';
+                progressText.textContent = '✅ ¡Enviado correctamente!';
+                progressDiv.classList.add('success');
                 
-                // Limpiar después de enviar
-                if (confirm('¿Limpiar reportes enviados?')) {
-                    reports = [];
-                    scannedCodes.clear();
-                    updateStats();
-                    renderTable();
-                }
+                showToast('✅ Datos enviados a Google Sheets');
+                
+                // Esperar un momento y preguntar si limpiar
+                setTimeout(() => {
+                    if (confirm(`Se enviaron ${reports.length} reporte(s).\n\n¿Limpiar lista de reportes escaneados?`)) {
+                        reports = [];
+                        scannedCodes.clear();
+                        updateStats();
+                        renderTable();
+                        showToast('Lista limpiada');
+                    }
+                    
+                    // Resetear progreso
+                    setTimeout(() => {
+                        progressDiv.style.display = 'none';
+                        progressDiv.classList.remove('success', 'error');
+                        progressBar.style.width = '0%';
+                    }, 1000);
+                }, 1500);
 
             } catch (error) {
-                alert('Error al enviar: ' + error.message);
+                console.error('Error detallado:', error);
+                
+                progressBar.style.width = '100%';
+                progressDiv.classList.add('error');
+                
+                let errorMsg = 'Error desconocido';
+                
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    errorMsg = 'No se pudo conectar. Verifica tu conexión a internet.';
+                } else if (error.name === 'NetworkError') {
+                    errorMsg = 'Error de red. Intenta de nuevo.';
+                } else {
+                    errorMsg = error.message || 'Error al enviar datos';
+                }
+                
+                progressText.textContent = '❌ ' + errorMsg;
+                showToast('❌ Error: ' + errorMsg);
+                
+                // Mostrar error detallado en consola
+                console.error('Detalles del error:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                });
+                
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                    progressDiv.classList.remove('success', 'error');
+                    progressBar.style.width = '0%';
+                }, 5000);
+                
             } finally {
                 sendBtn.disabled = false;
-                sendBtn.textContent = '📤 Enviar a Google Sheets';
             }
         }
 
