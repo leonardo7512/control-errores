@@ -385,42 +385,80 @@
                     return;
                 }
 
-                const data = JSON.parse(decodedText);
+                let data;
                 
-                // Validar que sea un reporte válido
-                if (!data.n || !data.monto === undefined) {
-                    showStatus('❌ QR no válido', 'error');
+                // Detectar formato: nuevo (pipes) o antiguo (JSON)
+                if (decodedText.includes('|') && !decodedText.startsWith('{')) {
+                    // Formato nuevo: E20250121-001|2025-01-21|B|OC123|Cliente|Armado|CA,CA1|6000|2000|D
+                    const parts = decodedText.split('|');
+                    
+                    if (parts.length < 8) {
+                        showStatus('❌ QR no válido (formato incorrecto)', 'error');
+                        return;
+                    }
+                    
+                    // Mapeo de departamento
+                    const deptoMap = { 'V': 'Ventas', 'B': 'Bodega', 'D': 'Despacho', 'A': 'Administración', 'P': 'Producción' };
+                    // Mapeo de resolución
+                    const resolMap = { 'D': 'Descuento', 'N': 'Nota de crédito', 'R': 'Reposición', 'E': 'Empresa', 'P': 'Pendiente' };
+                    
+                    data = {
+                        numero: parts[0] || '',
+                        fechaError: parts[1] || '',
+                        departamento: deptoMap[parts[2]] || parts[2] || '',
+                        ordenCompra: parts[3] || '',
+                        cliente: parts[4] || '',
+                        tipoError: parts[5] || '',
+                        responsables: parts[6] ? parts[6].replace(/,/g, ', ') : '',
+                        monto: parseFloat(parts[7]) || 0,
+                        montoPorPersona: parseFloat(parts[8]) || 0,
+                        resolucion: resolMap[parts[9]] || parts[9] || ''
+                    };
+                } else {
+                    // Formato antiguo: JSON
+                    const jsonData = JSON.parse(decodedText);
+                    
+                    if (!jsonData.n && !jsonData.numero) {
+                        showStatus('❌ QR no válido', 'error');
+                        return;
+                    }
+                    
+                    data = {
+                        numero: jsonData.n || jsonData.numero || '',
+                        fechaError: jsonData.fe || jsonData.fechaError || '',
+                        fechaRegistro: jsonData.fr || jsonData.fechaRegistro || '',
+                        departamento: jsonData.dep || jsonData.departamento || '',
+                        registradoPor: jsonData.reg || jsonData.registradoPor || '',
+                        ordenCompra: jsonData.oc || jsonData.ordenCompra || '',
+                        cliente: jsonData.cli || jsonData.cliente || '',
+                        productos: jsonData.prod || jsonData.productos || '',
+                        tipoError: jsonData.tipo || jsonData.tipoError || '',
+                        descripcion: jsonData.desc || jsonData.descripcion || '',
+                        responsables: jsonData.resp || jsonData.responsables || '',
+                        observaciones: jsonData.obs || jsonData.observaciones || '',
+                        monto: jsonData.monto || 0,
+                        montoPorPersona: jsonData.xper || jsonData.montoPorPersona || 0,
+                        resolucion: jsonData.resol || jsonData.resolucion || '',
+                        cantidadFotos: jsonData.fotos || jsonData.cantidadFotos || 0
+                    };
+                }
+
+                // Validar datos mínimos
+                if (!data.numero) {
+                    showStatus('❌ QR sin número de reporte', 'error');
                     return;
                 }
 
                 scannedCodes.add(decodedText);
-                
-                // Agregar a la lista
-                reports.push({
-                    numero: data.n || '',
-                    fechaError: data.fe || '',
-                    fechaRegistro: data.fr || '',
-                    departamento: data.dep || '',
-                    registradoPor: data.reg || '',
-                    ordenCompra: data.oc || '',
-                    cliente: data.cli || '',
-                    productos: data.prod || '',
-                    tipoError: data.tipo || '',
-                    descripcion: data.desc || '',
-                    responsables: data.resp || '',
-                    observaciones: data.obs || '',
-                    monto: data.monto || 0,
-                    montoPorPersona: data.xper || 0,
-                    resolucion: data.resol || '',
-                    cantidadFotos: data.fotos || 0
-                });
+                reports.push(data);
 
-                showStatus('✅ Reporte ' + data.n + ' agregado', 'success');
+                showStatus('✅ Reporte ' + data.numero + ' agregado', 'success');
                 updateStats();
                 renderTable();
 
             } catch (e) {
-                showStatus('❌ Error al leer QR: ' + e.message, 'error');
+                console.error('Error parseando QR:', e);
+                showStatus('❌ Error al leer QR', 'error');
             }
         }
 
@@ -444,7 +482,9 @@
             const allResponsibles = new Set();
             reports.forEach(r => {
                 if (r.responsables) {
-                    r.responsables.split('|').forEach(resp => {
+                    // Soportar ambos separadores: | y ,
+                    const sep = r.responsables.includes('|') ? '|' : ',';
+                    r.responsables.split(sep).forEach(resp => {
                         if (resp.trim()) allResponsibles.add(resp.trim());
                     });
                 }
