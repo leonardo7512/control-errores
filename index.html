@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AROMAKER - Control de Errores</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            color: white;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: rgba(255,255,255,0.7);
+            font-size: 1.1rem;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .card-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 1rem;
+        }
+
+        .card p {
+            color: #636e72;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-features {
+            text-align: left;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-features li {
+            list-style: none;
+            padding: 0.4rem 0;
+            font-size: 0.85rem;
+            color: #2d3436;
+        }
+
+        .card-features li::before {
+            content: '✓';
+            color: #27ae60;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .card-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #1a1a2e 0%, #2d3436 100%);
+            color: white;
+            padding: 0.9rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .card:hover .card-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* Card específica del generador */
+        .card-generator::before {
+            background: linear-gradient(90deg, #e94560 0%, #ff6b6b 100%);
+        }
+
+        .card-generator:hover .card-btn {
+            background: linear-gradient(135deg, #e94560 0%, #ff6b6b 100%);
+        }
+
+        /* Card específica del scanner */
+        .card-scanner::before {
+            background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
+        }
+
+        .card-scanner:hover .card-btn {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        }
+
+        footer {
+            margin-top: 3rem;
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: white;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            .card-icon {
+                font-size: 3rem;
+            }
+
+            .card h2 {
+                font-size: 1.25rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">📋</div>
+            <h1>Sistema de Control de Errores</h1>
+            <p>AROMAKER - Gestión de errores con impacto monetario</p>
+        </header>
+
+        <div class="cards">
+            <!-- Generador de Reportes -->
+            <a href="generador.html" class="card card-generator">
+                <span class="card-icon">📝</span>
+                <h2>Generador de Reportes</h2>
+                <p>Crea reportes de errores con evidencia fotográfica y genera PDF con código QR para seguimiento.</p>
+                
+                <ul class="card-features">
+                    <li>Registro de errores detallado</li>
+                    <li>Múltiples responsables</li>
+                    <li>División automática de costos</li>
+                    <li>Evidencia fotográfica</li>
+                    <li>PDF con código QR</li>
+                    <li>Guardado de borradores</li>
+                </ul>
+                
+                <span class="card-btn">Crear Reporte →</span>
+            </a>
+
+            <!-- Scanner QR -->
+            <a href="scanner.html" class="card card-scanner">
+                <span class="card-icon">📱</span>
+                <h2>Scanner QR</h2>
+                <p>Escanea los códigos QR de los reportes para consolidar datos y enviarlos a Google Sheets.</p>
+                
+                <ul class="card-features">
+                    <li>Escaneo con cámara</li>
+                    <li>Acumulación de reportes</li>
+                    <li>Vista previa de datos</li>
+                    <li>Envío a Google Sheets</li>
+                    <li>Descarga CSV</li>
+                    <li>Estadísticas en tiempo real</li>
+                </ul>
+                
+                <span class="card-btn">Escanear QR →</span>
+            </a>
+        </div>
+
+        <footer>
+            <p>AROMAKER © 2025 | <a href="https://github.com/tu-usuario/control-errores" target="_blank">GitHub</a></p>
+        </footer>
+    </div>
+</body>
+</html>
