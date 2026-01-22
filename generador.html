@@ -886,71 +886,72 @@
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
-            const margin = 15;
-            let y = 15;
+            const margin = 10;
+            let y = 8;
 
-            const headerBg = [220, 220, 220];
-            const sectionBg = [240, 240, 240];
-            const textDark = [50, 50, 50];
-            const textLight = [120, 120, 120];
+            const headerBg = [230, 230, 230];
+            const sectionBg = [245, 245, 245];
+            const textDark = [40, 40, 40];
+            const textLight = [100, 100, 100];
 
             const reportNum = getValue('reportNumber');
             const monto = parseFloat(getValue('errorAmount')) || 0;
             const perPerson = responsibles.length > 0 ? Math.round(monto / responsibles.length) : monto;
 
-            // ==================== PÁGINA 1: INFORMACIÓN ====================
+            // ==================== PÁGINA 1: TODO COMPACTO ====================
             
-            // Header
+            // Header compacto
             doc.setFillColor(...headerBg);
-            doc.rect(0, 0, pageWidth, 25, 'F');
+            doc.rect(0, 0, pageWidth, 16, 'F');
             doc.setTextColor(...textDark);
-            doc.setFontSize(16);
+            doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
-            doc.text('REPORTE DE ERROR - IMPACTO MONETARIO', margin, 12);
-            doc.setFontSize(10);
+            doc.text('REPORTE DE ERROR - IMPACTO MONETARIO', margin, 7);
+            doc.setFontSize(7);
             doc.setFont('helvetica', 'normal');
-            doc.text('AROMAKER - Control Interno', margin, 19);
+            doc.text('AROMAKER', margin, 12);
             
-            doc.setFontSize(12);
+            doc.setFontSize(9);
             doc.setFont('helvetica', 'bold');
-            doc.text(reportNum, pageWidth - margin - doc.getTextWidth(reportNum), 15);
+            doc.text(reportNum, pageWidth - margin - doc.getTextWidth(reportNum), 10);
 
-            y = 35;
+            y = 20;
 
+            // Helpers compactos
             function addSection(title) {
                 doc.setFillColor(...sectionBg);
-                doc.rect(margin, y, pageWidth - margin * 2, 7, 'F');
+                doc.rect(margin, y, pageWidth - margin * 2, 5, 'F');
                 doc.setTextColor(...textDark);
-                doc.setFontSize(9);
+                doc.setFontSize(7);
                 doc.setFont('helvetica', 'bold');
-                doc.text(title, margin + 3, y + 5);
-                y += 11;
+                doc.text(title, margin + 2, y + 3.5);
+                y += 7;
             }
 
             function addRow(fields) {
                 const colW = (pageWidth - margin * 2) / fields.length;
                 fields.forEach((f, i) => {
-                    doc.setFontSize(7);
+                    doc.setFontSize(5);
                     doc.setTextColor(...textLight);
                     doc.text(f.l.toUpperCase(), margin + i * colW, y);
-                    doc.setFontSize(10);
+                    doc.setFontSize(8);
                     doc.setTextColor(...textDark);
                     doc.setFont('helvetica', 'normal');
-                    doc.text(String(f.v || '-').substring(0, 35), margin + i * colW, y + 5);
+                    doc.text(String(f.v || '-').substring(0, 30), margin + i * colW, y + 3.5);
                 });
-                y += 12;
+                y += 8;
             }
 
-            function addText(label, value, maxLines = 3) {
-                doc.setFontSize(7);
+            function addText(label, value, maxLines = 2) {
+                doc.setFontSize(5);
                 doc.setTextColor(...textLight);
                 doc.text(label.toUpperCase(), margin, y);
-                y += 4;
-                doc.setFontSize(10);
+                y += 2.5;
+                doc.setFontSize(7);
                 doc.setTextColor(...textDark);
                 const lines = doc.splitTextToSize(String(value || '-'), pageWidth - margin * 2).slice(0, maxLines);
                 doc.text(lines, margin, y);
-                y += lines.length * 5 + 3;
+                y += lines.length * 3 + 2;
             }
 
             // INFORMACIÓN GENERAL
@@ -959,7 +960,7 @@
                 { l: 'Fecha Error', v: formatDate(getValue('errorDate')) },
                 { l: 'Fecha Registro', v: formatDate(getValue('registerDate')) },
                 { l: 'Area', v: getValue('department') },
-                { l: 'Registrado por', v: getValue('registeredBy') }
+                { l: 'Registrado', v: getValue('registeredBy') }
             ]);
 
             // PEDIDO
@@ -968,226 +969,190 @@
                 { l: 'N° Pedido/OC', v: getValue('orderNumber') },
                 { l: 'Cliente', v: getValue('clientName') }
             ]);
-            addText('Productos Involucrados', getValue('products'), 3);
+            const prods = getValue('products');
+            if (prods) addText('Productos', prods, 2);
 
             // ERROR
             addSection('DESCRIPCION DEL ERROR');
             addRow([{ l: 'Tipo de Error', v: getValue('errorType') }]);
-            addText('Descripcion Detallada', getValue('errorDescription'), 4);
+            const desc = getValue('errorDescription');
+            if (desc) addText('Descripcion', desc, 2);
 
             // RESPONSABLES
             addSection('RESPONSABLES');
-            addText('Identificados', responsibles.join(', ') || '-', 2);
-            if (getValue('responsibilityNotes')) {
-                addText('Observaciones', getValue('responsibilityNotes'), 2);
-            }
+            addRow([
+                { l: 'Identificados', v: responsibles.join(', ') || '-' },
+                { l: 'Cantidad', v: responsibles.length || 1 }
+            ]);
+            const obs = getValue('responsibilityNotes');
+            if (obs) addText('Observaciones', obs, 1);
 
-            // IMPACTO MONETARIO - Destacado
+            // IMPACTO MONETARIO - Cuadro compacto
             addSection('IMPACTO MONETARIO');
-            
-            // Cuadro destacado para el monto
-            doc.setFillColor(245, 245, 245);
-            doc.rect(margin, y, pageWidth - margin * 2, 20, 'F');
+            doc.setFillColor(250, 250, 250);
+            doc.rect(margin, y, pageWidth - margin * 2, 12, 'F');
             doc.setDrawColor(200, 200, 200);
-            doc.rect(margin, y, pageWidth - margin * 2, 20, 'S');
+            doc.rect(margin, y, pageWidth - margin * 2, 12, 'S');
             
-            const montoY = y + 8;
-            doc.setFontSize(8);
+            const montoY = y + 4;
+            const colWidth = (pageWidth - margin * 2) / 4;
+            
+            // Monto Total
+            doc.setFontSize(5);
             doc.setTextColor(...textLight);
-            doc.text('MONTO TOTAL', margin + 5, montoY - 2);
-            doc.setFontSize(16);
+            doc.text('MONTO TOTAL', margin + 3, montoY);
+            doc.setFontSize(11);
             doc.setTextColor(...textDark);
             doc.setFont('helvetica', 'bold');
-            doc.text(formatMoney(monto), margin + 5, montoY + 6);
+            doc.text(formatMoney(monto), margin + 3, montoY + 5);
             
-            doc.setFontSize(8);
+            // Responsables
+            doc.setFontSize(5);
             doc.setTextColor(...textLight);
             doc.setFont('helvetica', 'normal');
-            doc.text('RESPONSABLES', margin + 55, montoY - 2);
-            doc.setFontSize(14);
-            doc.setTextColor(...textDark);
-            doc.text(String(responsibles.length || 1), margin + 55, montoY + 6);
-            
-            doc.setFontSize(8);
-            doc.setTextColor(...textLight);
-            doc.text('MONTO C/U', margin + 90, montoY - 2);
-            doc.setFontSize(14);
-            doc.setTextColor(...textDark);
-            doc.setFont('helvetica', 'bold');
-            doc.text(formatMoney(perPerson), margin + 90, montoY + 6);
-            
-            doc.setFontSize(8);
-            doc.setTextColor(...textLight);
-            doc.setFont('helvetica', 'normal');
-            doc.text('RESOLUCION', margin + 140, montoY - 2);
+            doc.text('RESPONSABLES', margin + colWidth + 3, montoY);
             doc.setFontSize(10);
             doc.setTextColor(...textDark);
-            doc.text(getValue('resolution') || '-', margin + 140, montoY + 6);
+            doc.text(String(responsibles.length || 1), margin + colWidth + 3, montoY + 5);
             
-            y += 25;
-
-            // Footer página 1
-            const totalPhotoPages = Math.ceil(photos.length / 2);
-            const totalPages = 1 + totalPhotoPages + 1; // info + fotos + firmas
-            doc.setFontSize(8);
+            // Monto c/u
+            doc.setFontSize(5);
             doc.setTextColor(...textLight);
-            doc.text(`Página 1 de ${photos.length > 0 ? totalPages : 2}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-
-            // ==================== PÁGINAS DE FOTOS (2 por página) ====================
-            if (photos.length > 0) {
-                const imgWidth = pageWidth - margin * 2;
-                const imgHeight = 115; // Media página aproximadamente
-                
-                for (let i = 0; i < photos.length; i++) {
-                    const posInPage = i % 2; // 0 = arriba, 1 = abajo
-                    
-                    // Nueva página cada 2 fotos
-                    if (posInPage === 0) {
-                        doc.addPage();
-                        
-                        // Header de página de fotos
-                        doc.setFillColor(...headerBg);
-                        doc.rect(0, 0, pageWidth, 18, 'F');
-                        doc.setTextColor(...textDark);
-                        doc.setFontSize(11);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('EVIDENCIA FOTOGRAFICA', margin, 12);
-                        doc.setFontSize(9);
-                        doc.setFont('helvetica', 'normal');
-                        doc.text(reportNum, pageWidth - margin - doc.getTextWidth(reportNum), 12);
-                    }
-                    
-                    // Posición Y de la foto
-                    const imgY = posInPage === 0 ? 25 : 150;
-                    
-                    try {
-                        doc.addImage(photos[i], 'JPEG', margin, imgY, imgWidth, imgHeight);
-                        
-                        // Número de foto
-                        doc.setFontSize(8);
-                        doc.setTextColor(...textLight);
-                        doc.text(`Foto ${i + 1} de ${photos.length}`, margin, imgY + imgHeight + 6);
-                    } catch (e) {
-                        console.error('Error imagen:', e);
-                    }
-                    
-                    // Footer en cada página de fotos (al final de página impar o última foto)
-                    if (posInPage === 1 || i === photos.length - 1) {
-                        const currentPhotoPage = Math.floor(i / 2) + 1;
-                        doc.setFontSize(8);
-                        doc.setTextColor(...textLight);
-                        doc.text(`Página ${1 + currentPhotoPage} de ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-                    }
-                }
-            }
-
-            // ==================== PÁGINA FINAL: FIRMAS Y QR ====================
-            doc.addPage();
-            
-            // Header
-            doc.setFillColor(...headerBg);
-            doc.rect(0, 0, pageWidth, 20, 'F');
+            doc.text('MONTO C/U', margin + colWidth * 2 + 3, montoY);
+            doc.setFontSize(10);
             doc.setTextColor(...textDark);
-            doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text('FIRMAS Y CONFORMIDAD', margin, 13);
-            doc.setFontSize(9);
+            doc.text(formatMoney(perPerson), margin + colWidth * 2 + 3, montoY + 5);
+            
+            // Resolución
+            doc.setFontSize(5);
+            doc.setTextColor(...textLight);
             doc.setFont('helvetica', 'normal');
-            doc.text(reportNum, pageWidth - margin - doc.getTextWidth(reportNum), 13);
+            doc.text('RESOLUCION', margin + colWidth * 3 + 3, montoY);
+            doc.setFontSize(8);
+            doc.setTextColor(...textDark);
+            doc.text(getValue('resolution') || '-', margin + colWidth * 3 + 3, montoY + 5);
+            
+            y += 16;
 
-            // QR centrado arriba
+            // ==================== QR + FIRMAS ====================
+            
+            // Línea separadora
+            doc.setDrawColor(200, 200, 200);
+            doc.line(margin, y, pageWidth - margin, y);
+            y += 5;
+
+            // QR a la izquierda
             const qrData = getQRData();
             const qrImage = await generateQRImage(qrData);
             
+            const qrSize = 35;
+            const qrX = margin;
+            const qrY = y;
+            
             if (qrImage) {
-                const qrSize = 50;
-                const qrX = (pageWidth - qrSize) / 2;
-                doc.addImage(qrImage, 'PNG', qrX, 30, qrSize, qrSize);
-                doc.setFontSize(8);
+                doc.addImage(qrImage, 'PNG', qrX, qrY, qrSize, qrSize);
+                doc.setFontSize(5);
                 doc.setTextColor(...textLight);
-                doc.text('Escanear para consolidar en sistema', pageWidth / 2, 85, { align: 'center' });
+                doc.text('Escanear para consolidar', qrX + qrSize/2, qrY + qrSize + 3, { align: 'center' });
             }
 
-            // Resumen del cobro
-            y = 100;
-            doc.setFillColor(245, 245, 245);
-            doc.rect(margin, y, pageWidth - margin * 2, 25, 'F');
-            doc.setDrawColor(200, 200, 200);
-            doc.rect(margin, y, pageWidth - margin * 2, 25, 'S');
-            
-            doc.setFontSize(10);
-            doc.setTextColor(...textDark);
-            doc.setFont('helvetica', 'bold');
-            doc.text('RESUMEN DEL COBRO', pageWidth / 2, y + 8, { align: 'center' });
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`Monto Total: ${formatMoney(monto)}  |  ${responsibles.length || 1} Responsable(s)  |  ${formatMoney(perPerson)} c/u`, pageWidth / 2, y + 18, { align: 'center' });
+            // Firmas a la derecha del QR
+            const firmasX = margin + qrSize + 10;
+            const firmasWidth = pageWidth - firmasX - margin;
+            let firmaY = y;
 
-            // Firmas
-            y = 140;
-            
-            doc.setFontSize(10);
+            doc.setFontSize(7);
             doc.setTextColor(...textDark);
             doc.setFont('helvetica', 'bold');
-            doc.text('FIRMAS DE RESPONSABLES', pageWidth / 2, y, { align: 'center' });
-            y += 10;
+            doc.text('FIRMAS DE CONFORMIDAD', firmasX, firmaY);
+            firmaY += 5;
 
             doc.setDrawColor(...textDark);
-            doc.setLineWidth(0.4);
+            doc.setLineWidth(0.3);
 
-            const allSigners = [...responsibles];
-            const maxPerRow = 3;
-            const sigWidth = (pageWidth - margin * 2 - (maxPerRow - 1) * 10) / maxPerRow;
-            const sigHeight = 35;
+            // Calcular firmas por fila según cantidad
+            const maxFirmasPorFila = responsibles.length <= 2 ? 2 : 3;
+            const firmaWidth = (firmasWidth / maxFirmasPorFila) - 3;
+            const firmaHeight = 18;
 
-            // Firmas de responsables
-            allSigners.forEach((name, i) => {
-                const row = Math.floor(i / maxPerRow);
-                const col = i % maxPerRow;
-                const x = margin + col * (sigWidth + 10);
-                const sigY = y + row * (sigHeight + 15);
+            responsibles.forEach((name, i) => {
+                const col = i % maxFirmasPorFila;
+                const row = Math.floor(i / maxFirmasPorFila);
+                const x = firmasX + col * (firmaWidth + 3);
+                const fY = firmaY + row * firmaHeight;
                 
-                // Línea de firma
-                doc.line(x, sigY + 20, x + sigWidth, sigY + 20);
-                
-                // Nombre
-                doc.setFontSize(9);
+                doc.line(x, fY + 10, x + firmaWidth, fY + 10);
+                doc.setFontSize(6);
                 doc.setTextColor(...textDark);
-                doc.setFont('helvetica', 'bold');
-                doc.text(name, x + sigWidth / 2, sigY + 26, { align: 'center' });
-                
-                // Monto
-                doc.setFontSize(8);
-                doc.setTextColor(...textLight);
                 doc.setFont('helvetica', 'normal');
-                doc.text(formatMoney(perPerson), x + sigWidth / 2, sigY + 32, { align: 'center' });
+                doc.text(name.substring(0, 12), x + firmaWidth/2, fY + 13, { align: 'center' });
+                doc.setFontSize(5);
+                doc.setTextColor(...textLight);
+                doc.text(formatMoney(perPerson), x + firmaWidth/2, fY + 16, { align: 'center' });
             });
 
-            // Calcular posición para firma supervisor
-            const respRows = Math.ceil(allSigners.length / maxPerRow);
-            y += respRows * (sigHeight + 15) + 15;
-
-            // Firma Supervisor - centrada y más grande
-            doc.setFontSize(10);
+            // Firma supervisor
+            const respRows = Math.ceil(responsibles.length / maxFirmasPorFila);
+            const supY = firmaY + respRows * firmaHeight + 3;
+            const supWidth = 50;
+            const supX = firmasX + (firmasWidth - supWidth) / 2;
+            
+            doc.line(supX, supY + 10, supX + supWidth, supY + 10);
+            doc.setFontSize(6);
             doc.setTextColor(...textDark);
-            doc.setFont('helvetica', 'bold');
-            doc.text('AUTORIZACION', pageWidth / 2, y, { align: 'center' });
-            y += 10;
+            doc.text('Supervisor', supX + supWidth/2, supY + 13, { align: 'center' });
 
-            const supWidth = 80;
-            const supX = (pageWidth - supWidth) / 2;
-            doc.line(supX, y + 20, supX + supWidth, y + 20);
-            doc.setFontSize(9);
-            doc.text('Supervisor / Administración', pageWidth / 2, y + 26, { align: 'center' });
-
-            // Footer página final
-            const finalTotalPages = 1 + Math.ceil(photos.length / 2) + 1;
-            const actualTotalPages = photos.length > 0 ? finalTotalPages : 2;
-            doc.setFontSize(8);
+            // Footer página 1
+            const footerY = Math.max(qrY + qrSize + 10, supY + 20);
+            y = footerY;
+            
+            doc.setFontSize(6);
             doc.setTextColor(...textLight);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`Página ${actualTotalPages} de ${actualTotalPages}`, pageWidth / 2, pageHeight - 15, { align: 'center' });
-            doc.text(`Generado: ${new Date().toLocaleString('es-CL')} | AROMAKER`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+            doc.text(`Generado: ${new Date().toLocaleString('es-CL')} | AROMAKER`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+            doc.text(`Página 1 de ${photos.length > 0 ? 1 + Math.ceil(photos.length / 2) : 1}`, pageWidth - margin, pageHeight - 5, { align: 'right' });
+
+            // ==================== PÁGINAS DE FOTOS (si hay) ====================
+            if (photos.length > 0) {
+                const imgWidth = pageWidth - margin * 2;
+                const imgHeight = 115;
+                
+                for (let i = 0; i < photos.length; i++) {
+                    const posInPage = i % 2;
+                    
+                    if (posInPage === 0) {
+                        doc.addPage();
+                        
+                        // Header mini
+                        doc.setFillColor(...headerBg);
+                        doc.rect(0, 0, pageWidth, 12, 'F');
+                        doc.setTextColor(...textDark);
+                        doc.setFontSize(8);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text('EVIDENCIA FOTOGRAFICA', margin, 8);
+                        doc.setFontSize(7);
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(reportNum, pageWidth - margin - doc.getTextWidth(reportNum), 8);
+                    }
+                    
+                    const imgY = posInPage === 0 ? 18 : 145;
+                    
+                    try {
+                        doc.addImage(photos[i], 'JPEG', margin, imgY, imgWidth, imgHeight);
+                        doc.setFontSize(6);
+                        doc.setTextColor(...textLight);
+                        doc.text(`Foto ${i + 1} de ${photos.length}`, margin, imgY + imgHeight + 4);
+                    } catch (e) {}
+                    
+                    if (posInPage === 1 || i === photos.length - 1) {
+                        const currentPage = 1 + Math.floor(i / 2) + 1;
+                        const totalPages = 1 + Math.ceil(photos.length / 2);
+                        doc.setFontSize(6);
+                        doc.setTextColor(...textLight);
+                        doc.text(`Página ${currentPage} de ${totalPages}`, pageWidth - margin, pageHeight - 5, { align: 'right' });
+                    }
+                }
+            }
 
             doc.save(`${reportNum}.pdf`);
             showToast('PDF generado', 'success');
